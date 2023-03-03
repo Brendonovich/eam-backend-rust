@@ -1,0 +1,95 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  // Corresponds to the cargo alias created earlier
+  provider    = "cargo prisma"
+  // The location to generate the client. Is relative to the position of the schema
+  output      = "../src/db/mod.rs"
+  module_path = "db"
+}
+
+model User {
+  id                 Int       @id @default(autoincrement())
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+  deleted_at         DateTime?
+  company            Company   @relation(fields: [company_id], references: [id])
+  is_active          IsActive
+  username           String    @unique @db.VarChar(255)
+  password           String    @db.VarChar(255)
+  full_name          String    @db.VarChar(255)
+  telephone          String    @db.VarChar(255)
+  address            String?   @db.VarChar(255)
+  email              String    @unique @db.VarChar(255)
+  role               Role      @relation(fields: [roles_id], references: [id])
+  customize_fileds_1 String?   @db.VarChar(255)
+  customize_fileds_2 String?   @db.VarChar(255)
+  customize_fileds_3 String?   @db.VarChar(255)
+  customize_fileds_4 String?   @db.VarChar(255)
+  customize_fileds_5 String?   @db.VarChar(255)
+  company_id         Int
+  roles_id           Int
+}
+
+enum IsActive {
+  YES
+  NO
+}
+
+model Company {
+  id                 Int       @id @default(autoincrement())
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+  deleted_at         DateTime?
+  company_code       String    @unique @db.VarChar(255)
+  company_name       String    @db.VarChar(255)
+  email              String    @unique @db.VarChar(255)
+  telephone          String    @db.VarChar(255)
+  company_bid        String    @unique @db.VarChar(255)
+  address            String?   @db.VarChar(255)
+  expiration_date    DateTime
+  max_users          Int       @default(10)
+  customize_fileds_1 String?   @db.VarChar(255)
+  customize_fileds_2 String?   @db.VarChar(255)
+  customize_fileds_3 String?   @db.VarChar(255)
+  customize_fileds_4 String?   @db.VarChar(255)
+  customize_fileds_5 String?   @db.VarChar(255)
+  users              User[]
+  Role               Role[]
+}
+
+model Role {
+  id              Int         @id @default(autoincrement())
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+  deleted_at      DateTime?
+  role_name       String      @unique @db.VarChar(255)
+  role_privileges Privilege[]
+  users           User[]
+  company         Company     @relation(fields: [company_id], references: [id])
+  company_id      Int
+}
+
+model Privilege {
+  id             Int           @id @default(autoincrement())
+  privilege_type PrivilegeType
+  role           Role          @relation(fields: [role_id], references: [id])
+  role_id        Int
+  module         Module
+}
+
+enum PrivilegeType {
+  NONE
+  VIEW
+  EDIT
+}
+
+enum Module {
+  DASHBOARD
+}
