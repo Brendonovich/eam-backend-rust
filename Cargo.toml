@@ -8,21 +8,19 @@ edition = "2021"
 [dependencies]
 tracing = "*"
 tracing-subscriber = "*"
-salvo = { git = "https://github.com/salvo-rs/salvo.git", features = [
-    "anyhow",
-    "jwt-auth",
-], branch = "main" }
-tokio = { version = "1.25.0", features = ["macros"] }
+axum = { version = "0.6.11", features = ["macros", "headers"] }
+tower-http = { version = "0.4.0", features=["cors"]}
+tokio = { version = "1.26.0", features = ["macros"] }
 anyhow = "1.0.69"
 prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", branch = "main" }
-serde = { version = "1.0.152", features = ["derive"] }
+serde = { version = "1.0.156", features = ["derive"] }
 once_cell = "1.17.1"
-thiserror = "1.0.38"
-chrono = "0.4.23"
+thiserror = "1.0.39"
+chrono = "0.4.24"
 sha2 = "0.10.6"
-jsonwebtoken = "8.2.0"
+jsonwebtoken = "8.3.0"
 dotenv = "0.15.0"
-async-trait = "0.1.64"
+async-trait = "0.1.66"
 
 
 [workspace]

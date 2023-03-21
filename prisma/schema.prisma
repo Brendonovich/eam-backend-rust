@@ -2,94 +2,245 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
 }
 
 generator client {
-  // Corresponds to the cargo alias created earlier
-  provider    = "cargo prisma"
-  // The location to generate the client. Is relative to the position of the schema
-  output      = "../src/db/mod.rs"
-  module_path = "db"
+    // Corresponds to the cargo alias created earlier
+    provider    = "cargo prisma"
+    // The location to generate the client. Is relative to the position of the schema
+    output      = "../src/db/mod.rs"
+    module_path = "db"
 }
 
 model User {
-  id                 Int       @id @default(autoincrement())
-  created_at         DateTime  @default(now())
-  updated_at         DateTime  @updatedAt
-  deleted_at         DateTime?
-  company            Company   @relation(fields: [company_id], references: [id])
-  is_active          IsActive
-  username           String    @unique @db.VarChar(255)
-  password           String    @db.VarChar(255)
-  full_name          String    @db.VarChar(255)
-  telephone          String    @db.VarChar(255)
-  address            String?   @db.VarChar(255)
-  email              String    @unique @db.VarChar(255)
-  role               Role      @relation(fields: [roles_id], references: [id])
-  customize_fileds_1 String?   @db.VarChar(255)
-  customize_fileds_2 String?   @db.VarChar(255)
-  customize_fileds_3 String?   @db.VarChar(255)
-  customize_fileds_4 String?   @db.VarChar(255)
-  customize_fileds_5 String?   @db.VarChar(255)
-  company_id         Int
-  roles_id           Int
+    id                  Int                   @id @default(autoincrement())
+    created_at          DateTime              @default(now())
+    updated_at          DateTime              @updatedAt
+    deleted_at          DateTime?
+    company             Company               @relation(fields: [company_id], references: [id])
+    is_active           IsActive
+    username            String                @unique @db.VarChar(255)
+    password            String                @db.VarChar(255)
+    full_name           String                @db.VarChar(255)
+    telephone           String                @db.VarChar(255)
+    address             String?               @db.VarChar(255)
+    email               String                @unique @db.VarChar(255)
+    role                Role                  @relation(fields: [role_id], references: [id])
+    customize_fileds_1  String?               @db.VarChar(255)
+    customize_fileds_2  String?               @db.VarChar(255)
+    customize_fileds_3  String?               @db.VarChar(255)
+    customize_fileds_4  String?               @db.VarChar(255)
+    customize_fileds_5  String?               @db.VarChar(255)
+    company_id          Int
+    role_id            Int
+    MaintainanceRequest MaintainanceRequest[]
 }
 
 enum IsActive {
-  YES
-  NO
+    YES
+    NO
 }
 
 model Company {
-  id                 Int       @id @default(autoincrement())
-  created_at         DateTime  @default(now())
-  updated_at         DateTime  @updatedAt
-  deleted_at         DateTime?
-  company_code       String    @unique @db.VarChar(255)
-  company_name       String    @db.VarChar(255)
-  email              String    @unique @db.VarChar(255)
-  telephone          String    @db.VarChar(255)
-  company_bid        String    @unique @db.VarChar(255)
-  address            String?   @db.VarChar(255)
-  expiration_date    DateTime
-  max_users          Int       @default(10)
-  customize_fileds_1 String?   @db.VarChar(255)
-  customize_fileds_2 String?   @db.VarChar(255)
-  customize_fileds_3 String?   @db.VarChar(255)
-  customize_fileds_4 String?   @db.VarChar(255)
-  customize_fileds_5 String?   @db.VarChar(255)
-  users              User[]
-  Role               Role[]
+    id                  Int                   @id @default(autoincrement())
+    created_at          DateTime              @default(now())
+    updated_at          DateTime              @updatedAt
+    deleted_at          DateTime?
+    company_code        String                @unique @db.VarChar(255)
+    company_name        String                @db.VarChar(255)
+    email               String                @unique @db.VarChar(255)
+    telephone           String                @db.VarChar(255)
+    company_bid         String                @unique @db.VarChar(255)
+    address             String?               @db.VarChar(255)
+    expiration_date     DateTime
+    max_users           Int                   @default(10)
+    customize_fileds_1  String?               @db.VarChar(255)
+    customize_fileds_2  String?               @db.VarChar(255)
+    customize_fileds_3  String?               @db.VarChar(255)
+    customize_fileds_4  String?               @db.VarChar(255)
+    customize_fileds_5  String?               @db.VarChar(255)
+    users               User[]
+    Role                Role[]
+    Asset               Asset[]
+    AssetStatus         AssetStatus[]
+    AssetLocation       AssetLocation[]
+    MaintainanceRequest MaintainanceRequest[]
+    MrStatus            MrStatus[]
+    MrCategory          MrCategory[]
+    MrPriority          MrPriority[]
+    MrFailureImpact     MrFailureImpact[]
+    MrFailureMode       MrFailureMode[]
 }
 
 model Role {
-  id              Int         @id @default(autoincrement())
-  created_at      DateTime    @default(now())
-  updated_at      DateTime    @updatedAt
-  deleted_at      DateTime?
-  role_name       String      @unique @db.VarChar(255)
-  role_privileges Privilege[]
-  users           User[]
-  company         Company     @relation(fields: [company_id], references: [id])
-  company_id      Int
+    id              Int         @id @default(autoincrement())
+    created_at      DateTime    @default(now())
+    updated_at      DateTime    @updatedAt
+    deleted_at      DateTime?
+    role_name       String      @unique @db.VarChar(255)
+    role_privileges Privilege[]
+    users           User[]
+    company         Company     @relation(fields: [company_id], references: [id])
+    company_id      Int
 }
 
 model Privilege {
-  id             Int           @id @default(autoincrement())
-  privilege_type PrivilegeType
-  role           Role          @relation(fields: [role_id], references: [id])
-  role_id        Int
-  module         Module
+    id             Int           @id @default(autoincrement())
+    privilege_type PrivilegeType
+    role           Role          @relation(fields: [role_id], references: [id])
+    role_id        Int
+    module         Module
 }
 
 enum PrivilegeType {
-  NONE
-  VIEW
-  EDIT
+    NONE
+    VIEW
+    EDIT
 }
 
 enum Module {
-  DASHBOARD
+    DASHBOARD
+    ASSET
+    ADMIN
+}
+
+model Asset {
+    id                  Int                   @id @default(autoincrement())
+    created_at          DateTime              @default(now())
+    updated_at          DateTime              @updatedAt
+    deleted_at          DateTime?
+    company             Company               @relation(fields: [company_id], references: [id])
+    asset_code          String                @unique @db.VarChar(255)
+    asset_name          String                @db.VarChar(511)
+    asset_description   String                @db.Text
+    asset_location      AssetLocation         @relation(fields: [asset_location_id], references: [id])
+    asset_location_id   Int
+    asset_status        AssetStatus           @relation(fields: [asset_status_id], references: [id])
+    asset_status_id     Int
+    parent_asset        Asset?                @relation("parentChildren", fields: [asset_id], references: [id])
+    children_asset      Asset[]               @relation("parentChildren")
+    asset_id            Int?
+    customize_fileds_1  String?               @db.VarChar(255)
+    customize_fileds_2  String?               @db.VarChar(255)
+    customize_fileds_3  String?               @db.VarChar(255)
+    customize_fileds_4  String?               @db.VarChar(255)
+    customize_fileds_5  String?               @db.VarChar(255)
+    MaintainanceRequest MaintainanceRequest[]
+    company_id          Int
+}
+
+model AssetStatus {
+    id          Int       @id @default(autoincrement())
+    created_at  DateTime  @default(now())
+    updated_at  DateTime  @updatedAt
+    deleted_at  DateTime?
+    company     Company   @relation(fields: [company_id], references: [id])
+    status_code String    @unique @db.VarChar(255)
+    status_name String    @db.VarChar(255)
+    Asset       Asset[]
+    company_id  Int
+}
+
+model AssetLocation {
+    id                   Int             @id @default(autoincrement())
+    created_at           DateTime        @default(now())
+    updated_at           DateTime        @updatedAt
+    deleted_at           DateTime?
+    company              Company         @relation(fields: [company_id], references: [id])
+    location_code        String          @unique @db.VarChar(255)
+    location_name        String          @db.VarChar(255)
+    location_description String          @db.Text
+    parent_loaction      AssetLocation?  @relation("parentChildren", fields: [parent_id], references: [id])
+    parent_id            Int?
+    children_location    AssetLocation[] @relation("parentChildren")
+    Asset                Asset[]
+    company_id           Int
+}
+
+model MaintainanceRequest {
+    id                   Int             @id @default(autoincrement())
+    created_at           DateTime        @default(now())
+    updated_at           DateTime        @updatedAt
+    deleted_at           DateTime?
+    company              Company         @relation(fields: [company_id], references: [id])
+    asset                Asset           @relation(fields: [asset_id], references: [id])
+    asset_id             Int
+    mr_name              String          @db.VarChar(255)
+    mr_reporter          User            @relation(fields: [user_id], references: [id])
+    user_id              Int
+    mr_status            MrStatus        @relation(fields: [mr_status_id], references: [id])
+    mr_status_id         Int
+    mr_category          MrCategory      @relation(fields: [mr_category_id], references: [id])
+    mr_category_id       Int
+    mr_priority          MrPriority      @relation(fields: [mr_priority_id], references: [id])
+    mr_priority_id       Int
+    mr_failure_impact    MrFailureImpact @relation(fields: [mr_failure_impact_id], references: [id])
+    mr_failure_impact_id Int
+    mr_failure_mode      MrFailureMode   @relation(fields: [mr_failure_mode_id], references: [id])
+    mr_failure_mode_id   Int
+    mr_error_code        String          @db.VarChar(255)
+    mr_description       String          @db.Text
+    company_id           Int
+}
+
+model MrStatus {
+    id                  Int                   @id @default(autoincrement())
+    created_at          DateTime              @default(now())
+    updated_at          DateTime              @updatedAt
+    deleted_at          DateTime?
+    company             Company               @relation(fields: [company_id], references: [id])
+    status_code         String                @unique @db.VarChar(255)
+    status_name         String                @db.VarChar(255)
+    MaintainanceRequest MaintainanceRequest[]
+    company_id          Int
+}
+
+model MrCategory {
+    id                  Int                   @id @default(autoincrement())
+    created_at          DateTime              @default(now())
+    updated_at          DateTime              @updatedAt
+    deleted_at          DateTime?
+    company             Company               @relation(fields: [company_id], references: [id])
+    category_code       String                @unique @db.VarChar(255)
+    category_name       String                @db.VarChar(255)
+    MaintainanceRequest MaintainanceRequest[]
+    company_id          Int
+}
+
+model MrPriority {
+    id                  Int                   @id @default(autoincrement())
+    created_at          DateTime              @default(now())
+    updated_at          DateTime              @updatedAt
+    deleted_at          DateTime?
+    company             Company               @relation(fields: [company_id], references: [id])
+    priority_code       String                @unique @db.VarChar(255)
+    priority_name       String                @db.VarChar(255)
+    MaintainanceRequest MaintainanceRequest[]
+    company_id          Int
+}
+
+model MrFailureImpact {
+    id                  Int                   @id @default(autoincrement())
+    created_at          DateTime              @default(now())
+    updated_at          DateTime              @updatedAt
+    deleted_at          DateTime?
+    company             Company               @relation(fields: [company_id], references: [id])
+    failure_impact_code String                @unique @db.VarChar(255)
+    failure_impact_name String                @db.VarChar(255)
+    MaintainanceRequest MaintainanceRequest[]
+    company_id          Int
+}
+
+model MrFailureMode {
+    id                  Int                   @id @default(autoincrement())
+    created_at          DateTime              @default(now())
+    updated_at          DateTime              @updatedAt
+    deleted_at          DateTime?
+    company             Company               @relation(fields: [company_id], references: [id])
+    failure_mode_code   String                @unique @db.VarChar(255)
+    failure_mode_name   String                @db.VarChar(255)
+    MaintainanceRequest MaintainanceRequest[]
+    company_id          Int
 }

@@ -1,21 +1,20 @@
 use anyhow::Result;
+use axum::{debug_handler, extract::Path, Json};
 use chrono::{Days, Local, Months};
-use jsonwebtoken::{self, EncodingKey};
-use salvo::prelude::*;
+use jsonwebtoken::{self};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tracing::{debug, info};
 
-pub const TOKEN_SALT: &str = "%1t's_th3_toKen_sa1t&";
-
 use crate::{
     db::{self, company},
     errors::{AppError, AppResult, CommonResponse},
+    utils::{JwtClaims, KEYS},
     DB,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
-struct UserRegisterInfo {
+pub struct UserRegisterInfo {
     pub company_code: String,
     pub username: String,
     pub password: String,
@@ -30,10 +29,9 @@ struct UserRegisterInfo {
     pub customize_fileds_5: Option<String>,
 }
 
-#[handler]
-pub async fn user_register(req: &mut Request, res: &mut Response) -> AppResult<()> {
-    let ur = req.parse_json::<UserRegisterInfo>().await?;
-    debug!("{:?}", ur);
+#[debug_handler]
+pub async fn user_register(Json(ur): Json<UserRegisterInfo>) -> AppResult<()> {
+    debug!("user register info: {:?}", ur);
     let client = DB.get().unwrap();
     let company = client
         .company()
@@ -57,7 +55,7 @@ pub async fn user_register(req: &mut Request, res: &mut Response) -> AppResult<(
                         .await?
                 }
             };
-            client
+            let u = client
                 .user()
                 .create(
                     company::company_code::equals(ur.company_code),
@@ -78,6 +76,7 @@ pub async fn user_register(req: &mut Request, res: &mut Response) -> AppResult<(
                 )
                 .exec()
                 .await?;
+            info!("successfully create user, id: {}", u.id);
             Ok(())
         }
         _ => Err(AppError::Custom {
@@ -88,29 +87,22 @@ pub async fn user_register(req: &mut Request, res: &mut Response) -> AppResult<(
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct UserLoginInfo {
+pub struct UserLoginInfo {
     username: String,
     password: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct JwtClaims {
-    user_id: i32,
-    exp: i64,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct LoginOutInfo {
+pub struct LoginOutInfo {
     id: i32,
     token: String,
 }
 
-#[handler]
+#[debug_handler]
 pub async fn user_login(
-    req: &mut Request,
-    res: &mut Response,
+    Json(ul): Json<UserLoginInfo>,
 ) -> AppResult<Json<CommonResponse<LoginOutInfo>>> {
-    let ul = req.parse_json::<UserLoginInfo>().await?;
+    debug!("user login info: {:?}", ul);
     let encryped_password = format!("{:X}", Sha256::digest(ul.password));
     let client = DB.get().unwrap();
     let u = client
@@ -121,6 +113,7 @@ pub async fn user_login(
     match u {
         Some(user) => match user.is_active {
             db::IsActive::Yes => {
+                debug!("find active user: {:?}", user);
                 if encryped_password != user.password {
                     Err(AppError::Custom {
                         status_code: 403,
@@ -130,12 +123,14 @@ pub async fn user_login(
                     let exp = Local::now() + Days::new(14);
                     let claim = JwtClaims {
                         user_id: user.id,
+                        company_id: user.company_id,
+                        role_id: user.role_id,
                         exp: exp.timestamp(),
                     };
                     let token = jsonwebtoken::encode(
                         &jsonwebtoken::Header::default(),
                         &claim,
-                        &EncodingKey::from_secret(TOKEN_SALT.as_bytes()),
+                        &KEYS.encoding,
                     )?;
                     Ok(Json(CommonResponse {
                         data: Some(LoginOutInfo { token, id: user.id }),
@@ -183,25 +178,76 @@ db::user::select! { user_out {
     customize_fileds_5
 }}
 
-#[handler]
-pub async fn user_details(req: &mut Request) -> AppResult<Json<CommonResponse<user_out::Data>>> {
-    let id = req.param::<i32>("id").unwrap();
+pub async fn user_details(
+    Path(id): Path<i32>,
+    c: JwtClaims,
+) -> AppResult<Json<CommonResponse<user_out::Data>>> {
     let client = DB.get().unwrap();
     let u = client
         .user()
-        .find_first(vec![db::user::id::equals(id)])
+        .find_first(vec![
+            db::user::id::equals(id),
+            db::user::company_id::equals(c.company_id),
+        ])
         .select(user_out::select())
         .exec()
         .await?;
     match u {
-        Some(user) => Ok(Json(CommonResponse {
-            error: None,
-            data: Some(user),
-        })),
+        Some(user) => CommonResponse::json_data(user),
         _ => Err(AppError::Custom {
             status_code: 404,
             error: "user not found".to_string(),
         }),
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateUserInfo {
+    pub full_name: Option<String>,
+    pub address: Option<String>,
+    pub password: Option<String>,
+    pub telephone: Option<String>,
+    pub customize_fileds_1: Option<String>,
+    pub customize_fileds_2: Option<String>,
+    pub customize_fileds_3: Option<String>,
+    pub customize_fileds_4: Option<String>,
+    pub customize_fileds_5: Option<String>,
+    pub role_id: Option<i32>,
+}
+
+pub async fn update_user(
+    Path(id): Path<i32>,
+    c: JwtClaims,
+    Json(payload): Json<UpdateUserInfo>,
+) -> AppResult<Json<CommonResponse<user_out::Data>>> {
+    let client = DB.get().unwrap();
+    if id == c.user_id {
+        CommonResponse::json_data(
+            client
+                .user()
+                .update(db::user::id::equals(id), vec![
+                    // db::user::full_name::set(payload.full_name)
+                ])
+                .select(user_out::select())
+                .exec()
+                .await?,
+        )
+    } else {
+        let r = client
+            .role()
+            .find_unique(db::role::id::equals(c.role_id))
+            .exec()
+            .await?;
+        if let Some(role) = r {
+            if let Some(rpv) = role.role_privileges {
+                for p in rpv {
+                    if p.module == db::Module::Admin && p.privilege_type == db::PrivilegeType::Edit
+                    {
+                    }
+                }
+            }
+        }
+        todo!()
     }
 }
 
@@ -220,9 +266,7 @@ pub struct CompanyRegisterInfo {
     pub customize_fileds_5: Option<String>,
 }
 
-#[handler]
-pub async fn company_register(req: &mut Request, res: &mut Response) -> AppResult<()> {
-    let cr = req.parse_json::<CompanyRegisterInfo>().await?;
+pub async fn company_register(Json(cr): Json<CompanyRegisterInfo>) -> AppResult<()> {
     debug!("{:?}", cr);
     let client = DB.get().unwrap();
     let find = client
