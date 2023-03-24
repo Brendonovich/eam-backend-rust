@@ -47,16 +47,31 @@ async fn main() -> Result<()> {
         .route("/details/:id", get(user_details))
         .route("/update/:id", put(update_user));
 
-    let company_router = Router::new().route("/register", post(company_register));
+    let company_router = Router::new()
+        .route("/register", post(company_register))
+        .route("/update/:id", put(update_company));
 
     let asset_router = Router::new()
         .route("/", post(create_asset))
-        .route("/:id", get(get_asset))
+        .route(
+            "/:id",
+            get(get_asset).put(update_asset).delete(delete_asset),
+        )
         .route("/location", post(create_location))
-        .route("/location/:id", get(get_location))
+        .route(
+            "/location/:id",
+            get(get_location)
+                .put(update_location)
+                .delete(delete_location),
+        )
         .route("/location/nested", get(get_nested_location))
         .route("/status", post(create_status))
-        .route("/status/:id", get(get_status));
+        .route(
+            "/status/:id",
+            get(get_status)
+                .put(update_asset_status)
+                .delete(delete_asset_status),
+        );
 
     let mr_router = Router::new()
         .route("/", post(create_mr))

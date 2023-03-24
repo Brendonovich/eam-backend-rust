@@ -34,7 +34,7 @@ impl IntoResponse for AppError {
                 )
             }
             e => {
-                tracing::error!("return status code 404 with error {}", e.to_string());
+                tracing::error!("return status code 400 with error {}", e.to_string());
                 (StatusCode::BAD_REQUEST, e.to_string())
             }
         };

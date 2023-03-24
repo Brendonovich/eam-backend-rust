@@ -1,6 +1,6 @@
 use anyhow::Result;
 use axum::{debug_handler, extract::Path, Json};
-use chrono::{Days, Local, Months};
+use chrono::{Days, FixedOffset, Local, Months};
 use jsonwebtoken;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -121,6 +121,7 @@ pub async fn user_login(
                     })
                 } else {
                     let exp = Local::now() + Days::new(14);
+                    let exp = exp.with_timezone(&FixedOffset::east_opt(8 * 3600).unwrap());
                     let claim = JwtClaims {
                         user_id: user.id,
                         company_id: user.company_id,
@@ -182,6 +183,10 @@ pub async fn user_details(
     Path(id): Path<i32>,
     c: JwtClaims,
 ) -> AppResult<Json<CommonResponse<user_out::Data>>> {
+    if c.user_id != id {
+        c.check_module_privilige(db::Module::Admin, db::PrivilegeType::View)
+            .await?;
+    }
     let client = DB.get().unwrap();
     let u = client
         .user()
@@ -201,20 +206,22 @@ pub async fn user_details(
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct UpdateUserInfo {
-    pub nickname: Option<String>,
-    pub address: Option<String>,
-    pub password: Option<String>,
-    pub telephone: Option<String>,
-    pub customize_fileds_1: Option<String>,
-    pub customize_fileds_2: Option<String>,
-    pub customize_fileds_3: Option<String>,
-    pub customize_fileds_4: Option<String>,
-    pub customize_fileds_5: Option<String>,
-    pub role_id: Option<i32>,
-}
+db::user::partial!(
+    UpdateUserInfo {
+        nickname
+        address
+        password
+        telephone
+        customize_fileds_1
+        customize_fileds_2
+        customize_fileds_3
+        customize_fileds_4
+        customize_fileds_5
+        role_id
+    }
+);
 
+#[debug_handler]
 pub async fn update_user(
     Path(id): Path<i32>,
     c: JwtClaims,
@@ -225,72 +232,26 @@ pub async fn update_user(
         CommonResponse::json_data(
             client
                 .user()
-                .update(db::user::id::equals(id), update_helper(payload))
+                .update(db::user::id::equals(id), payload.to_params())
                 .select(user_out::select())
                 .exec()
                 .await?,
         )
     } else {
-        let r = client
-            .role()
-            .find_unique(db::role::id::equals(c.role_id))
-            .exec()
+        c.check_module_privilige(db::Module::Admin, db::PrivilegeType::Edit)
             .await?;
-        if let Some(role) = r {
-            if let Some(rpv) = role.role_privileges {
-                for p in rpv {
-                    if p.module == db::Module::Admin && p.privilege_type == db::PrivilegeType::Edit
-                    {
-                        return CommonResponse::json_data(
-                            client
-                                .user()
-                                .update(db::user::id::equals(id), update_helper(payload))
-                                .select(user_out::select())
-                                .exec()
-                                .await?,
-                        );
-                    }
-                }
-            }
-        }
-        Err(AppError::Custom {
-            status_code: 400,
-            error: "invalid request".to_string(),
-        })
+        CommonResponse::json_data(
+            client
+                .user()
+                .update(db::user::id::equals(id), payload.to_params())
+                .select(user_out::select())
+                .exec()
+                .await?,
+        )
     }
 }
 
-fn update_helper(payload: UpdateUserInfo) -> Vec<db::user::SetParam> {
-    let mut v: Vec<db::user::SetParam> = vec![];
-    if let Some(x) = payload.nickname {
-        v.push(db::user::nickname::set(x));
-    }
-    v.push(db::user::address::set(payload.address));
-    if let Some(x) = payload.password {
-        v.push(db::user::password::set(x));
-    }
-    if let Some(x) = payload.telephone {
-        v.push(db::user::telephone::set(x));
-    }
-    v.push(db::user::customize_fileds_1::set(
-        payload.customize_fileds_1,
-    ));
-    v.push(db::user::customize_fileds_1::set(
-        payload.customize_fileds_2,
-    ));
-    v.push(db::user::customize_fileds_1::set(
-        payload.customize_fileds_3,
-    ));
-    v.push(db::user::customize_fileds_1::set(
-        payload.customize_fileds_4,
-    ));
-    v.push(db::user::customize_fileds_1::set(
-        payload.customize_fileds_5,
-    ));
-    v
-}
-
-#[derive(Debug, Clone, :: serde :: Serialize, :: serde :: Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompanyRegisterInfo {
     pub company_code: String,
     pub company_name: String,
@@ -336,4 +297,29 @@ pub async fn company_register(Json(cr): Json<CompanyRegisterInfo>) -> AppResult<
             .await?;
         Ok(())
     }
+}
+
+db::company::partial!(
+    UpdateCompanyInfo {
+        company_name
+        email
+        telephone
+        address
+});
+
+pub async fn update_company(
+    Path(id): Path<i32>,
+    c: JwtClaims,
+    Json(payload): Json<UpdateCompanyInfo>,
+) -> AppResult<Json<CommonResponse<db::company::Data>>> {
+    c.check_module_privilige(db::Module::Admin, db::PrivilegeType::Edit)
+        .await?;
+    let client = DB.get().unwrap();
+    CommonResponse::json_data(
+        client
+            .company()
+            .update(db::company::id::equals(id), payload.to_params())
+            .exec()
+            .await?,
+    )
 }

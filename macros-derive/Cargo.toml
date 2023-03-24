@@ -11,4 +11,3 @@ proc-macro = true
 [dependencies]
 syn = { version = "2.0", features = ["full"] }
 quote = "1.0"
-prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", branch = "main" }

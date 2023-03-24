@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+use anyhow::{bail, Result};
 use async_trait::async_trait;
 use axum::{
     extract::{rejection::TypedHeaderRejectionReason, FromRequestParts, TypedHeader},
@@ -12,7 +13,11 @@ use jsonwebtoken::{decode, DecodingKey, EncodingKey, Validation};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-use crate::errors::AppError;
+use crate::{
+    db::{self, PrivilegeType},
+    errors::AppError,
+    DB,
+};
 
 pub static KEYS: Lazy<Keys> = Lazy::new(|| {
     let secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
@@ -39,6 +44,50 @@ pub struct JwtClaims {
     pub company_id: i32,
     pub role_id: i32,
     pub exp: i64,
+}
+
+impl JwtClaims {
+    pub async fn check_module_privilige(
+        &self,
+        module: db::Module,
+        privilege: db::PrivilegeType,
+    ) -> Result<()> {
+        let client = DB.get().unwrap();
+        let r = client
+            .role()
+            .find_unique(db::role::id::equals(self.role_id))
+            .exec()
+            .await?;
+        if let Some(role) = r {
+            if let Some(rpv) = role.role_privileges {
+                for p in rpv {
+                    if p.module == module && p.privilege_type == privilege {
+                        match privilege {
+                            PrivilegeType::Edit => return Ok(()),
+                            PrivilegeType::View => match p.privilege_type {
+                                PrivilegeType::Edit => bail!(
+                                    "you are not allowed to {} in {}",
+                                    privilege.to_string(),
+                                    module.to_string()
+                                ),
+                                _ => return Ok(()),
+                            },
+                            _ => bail!(
+                                "you are not allowed to {} in {}",
+                                privilege.to_string(),
+                                module.to_string()
+                            ),
+                        }
+                    }
+                }
+            }
+        }
+        bail!(
+            "you are not allowed to {} in {}",
+            privilege.to_string(),
+            module.to_string()
+        )
+    }
 }
 
 #[allow(unused)]

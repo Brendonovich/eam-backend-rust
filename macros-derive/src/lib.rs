@@ -29,9 +29,3 @@ fn impl_iter_object_macro(arg: PatPath, ast: ItemStruct) -> TokenStream {
     };
     gen.into()
 }
-
-macro_rules! map_or_else {
-    () => {
-        
-    };
-}

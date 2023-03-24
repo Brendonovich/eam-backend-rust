@@ -103,7 +103,9 @@ enum PrivilegeType {
 enum Module {
     DASHBOARD
     ASSET
+    LOCATION
     ADMIN
+    MaintainanceRequest
 }
 
 model Asset {

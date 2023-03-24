@@ -26,6 +26,8 @@ pub async fn create_mr(
     c: JwtClaims,
     Json(payload): Json<CreateMrInfo>,
 ) -> AppResult<Json<CommonResponse<db::maintainance_request::Data>>> {
+    c.check_module_privilige(db::Module::MaintainanceRequest, db::PrivilegeType::Edit)
+        .await?;
     let client = DB.get().unwrap();
     CommonResponse::json_data(
         client
@@ -54,6 +56,8 @@ pub async fn get_mr(
     Path(id): Path<i32>,
     c: JwtClaims,
 ) -> AppResult<Json<CommonResponse<db::maintainance_request::Data>>> {
+    c.check_module_privilige(db::Module::MaintainanceRequest, db::PrivilegeType::View)
+        .await?;
     let client = DB.get().unwrap();
     let a = client
         .maintainance_request()
@@ -68,6 +72,21 @@ pub async fn get_mr(
         }),
     }
 }
+
+db::maintainance_request::partial!(
+    UpdateMRInfo {
+        asset_id
+        mr_name
+        user_id
+        mr_status_id
+        mr_category_id
+        mr_priority_id
+        mr_failure_impact_id
+        mr_failure_mode_id
+        mr_error_code
+        mr_description
+    }
+);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateMrStatusInfo {

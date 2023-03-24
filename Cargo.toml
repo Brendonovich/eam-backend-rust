@@ -7,8 +7,8 @@ edition = "2021"
 members = ["prisma-cli", "macros", "macros-derive"]
 
 [workspace.dependencies]
-prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", rev = "1699cff77f47acbee5d8adf3684d64a15e964ae7", default-features = false, features = ["postgresql"] }
-prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", rev = "1699cff77f47acbee5d8adf3684d64a15e964ae7", default-features = false, features = ["postgresql"] }
+prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", rev = "49157998fcdcbe6aa45088bb4f2dd08011393209", default-features = false, features = ["postgresql"] }
+prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", rev = "49157998fcdcbe6aa45088bb4f2dd08011393209", default-features = false, features = ["postgresql"] }
 
 [dependencies]
 tracing = "*"

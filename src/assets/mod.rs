@@ -27,6 +27,8 @@ pub async fn create_asset(
     c: JwtClaims,
     Json(payload): Json<AssetCreateInfo>,
 ) -> AppResult<Json<CommonResponse<db::asset::Data>>> {
+    c.check_module_privilige(db::Module::Asset, db::PrivilegeType::Edit)
+        .await?;
     let client = DB.get().unwrap();
     let a = client
         ._transaction()
@@ -83,6 +85,8 @@ pub async fn get_asset(
     Path(id): Path<i32>,
     c: JwtClaims,
 ) -> AppResult<Json<CommonResponse<asset_out::Data>>> {
+    c.check_module_privilige(db::Module::Asset, db::PrivilegeType::View)
+        .await?;
     let client = DB.get().unwrap();
     let a = client
         .asset()
@@ -101,6 +105,58 @@ pub async fn get_asset(
     }
 }
 
+db::asset::partial!(
+    UpdateAssetInfo {
+        asset_name
+        asset_description
+        asset_location_id
+        asset_status_id
+        asset_id
+        customize_fileds_1
+        customize_fileds_2
+        customize_fileds_3
+        customize_fileds_4
+        customize_fileds_5
+    }
+);
+
+#[debug_handler]
+pub async fn update_asset(
+    Path(id): Path<i32>,
+    c: JwtClaims,
+    Json(payload): Json<UpdateAssetInfo>,
+) -> AppResult<Json<CommonResponse<asset_out::Data>>> {
+    c.check_module_privilige(db::Module::Asset, db::PrivilegeType::Edit)
+        .await?;
+    let client = DB.get().unwrap();
+    CommonResponse::json_data(
+        client
+            .asset()
+            .update(db::asset::id::equals(id), payload.to_params())
+            .select(asset_out::select())
+            .exec()
+            .await?,
+    )
+}
+
+#[debug_handler]
+pub async fn delete_asset(
+    Path(id): Path<i32>,
+    c: JwtClaims,
+) -> AppResult<Json<CommonResponse<asset_out::Data>>> {
+    c.check_module_privilige(db::Module::Asset, db::PrivilegeType::Edit)
+        .await?;
+    let client = DB.get().unwrap();
+    CommonResponse::json_data(
+        client
+            .asset()
+            .delete(db::asset::id::equals(id))
+            .select(asset_out::select())
+            .exec()
+            .await?,
+    )
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LocationCreateInfo {
     location_code: String,
@@ -114,6 +170,8 @@ pub async fn create_location(
     c: JwtClaims,
     Json(payload): Json<LocationCreateInfo>,
 ) -> AppResult<Json<CommonResponse<db::asset_location::Data>>> {
+    c.check_module_privilige(db::Module::Location, db::PrivilegeType::Edit)
+        .await?;
     let client = DB.get().unwrap();
     let l = client
         .asset_location()
@@ -122,7 +180,7 @@ pub async fn create_location(
             payload.location_code,
             payload.location_name,
             payload.location_description,
-            // vec![], 
+            // vec![],
             vec![db::asset_location::parent_id::set(payload.parent_id)],
         )
         .exec()
@@ -145,6 +203,8 @@ pub async fn get_location(
     Path(id): Path<i32>,
     c: JwtClaims,
 ) -> AppResult<Json<CommonResponse<location_out::Data>>> {
+    c.check_module_privilige(db::Module::Location, db::PrivilegeType::View)
+        .await?;
     let client = DB.get().unwrap();
     let l = client
         .asset_location()
@@ -176,12 +236,59 @@ db::asset_location::select! {
 pub async fn get_nested_location(
     c: JwtClaims,
 ) -> AppResult<Json<CommonResponse<Vec<location_nested_out::Data>>>> {
+    c.check_module_privilige(db::Module::Location, db::PrivilegeType::View)
+        .await?;
     let client = DB.get().unwrap();
     CommonResponse::json_data(
         client
             .asset_location()
             .find_many(vec![db::asset_location::company_id::equals(c.company_id)])
             .select(location_nested_out::select())
+            .exec()
+            .await?,
+    )
+}
+
+db::asset_location::partial!(
+    UpdateLocationInfo {
+        location_name
+        location_description
+        parent_id
+    }
+);
+
+#[debug_handler]
+pub async fn update_location(
+    Path(id): Path<i32>,
+    c: JwtClaims,
+    Json(payload): Json<UpdateLocationInfo>,
+) -> AppResult<Json<CommonResponse<location_out::Data>>> {
+    c.check_module_privilige(db::Module::Location, db::PrivilegeType::Edit)
+        .await?;
+    let client = DB.get().unwrap();
+    CommonResponse::json_data(
+        client
+            .asset_location()
+            .update(db::asset_location::id::equals(id), payload.to_params())
+            .select(location_out::select())
+            .exec()
+            .await?,
+    )
+}
+
+#[debug_handler]
+pub async fn delete_location(
+    Path(id): Path<i32>,
+    c: JwtClaims,
+) -> AppResult<Json<CommonResponse<location_out::Data>>> {
+    c.check_module_privilige(db::Module::Location, db::PrivilegeType::Edit)
+        .await?;
+    let client = DB.get().unwrap();
+    CommonResponse::json_data(
+        client
+            .asset_location()
+            .delete(db::asset_location::id::equals(id))
+            .select(location_out::select())
             .exec()
             .await?,
     )
@@ -198,6 +305,8 @@ pub async fn create_status(
     c: JwtClaims,
     Json(payload): Json<StatusCreateInfo>,
 ) -> AppResult<Json<CommonResponse<db::asset_status::Data>>> {
+    c.check_module_privilige(db::Module::Asset, db::PrivilegeType::Edit)
+        .await?;
     let client = DB.get().unwrap();
     let s = client
         .asset_status()
@@ -217,6 +326,8 @@ pub async fn get_status(
     Path(id): Path<i32>,
     c: JwtClaims,
 ) -> AppResult<Json<CommonResponse<db::asset_status::Data>>> {
+    c.check_module_privilige(db::Module::Asset, db::PrivilegeType::View)
+        .await?;
     let client = DB.get().unwrap();
     let a = client
         .asset_status()
@@ -230,4 +341,46 @@ pub async fn get_status(
             error: "status not found".to_string(),
         }),
     }
+}
+
+db::asset_status::partial!(
+    UpdateAssetStatusInfo {
+        status_code
+        status_name
+    }
+);
+
+#[debug_handler]
+pub async fn update_asset_status(
+    Path(id): Path<i32>,
+    c: JwtClaims,
+    Json(payload): Json<UpdateAssetStatusInfo>,
+) -> AppResult<Json<CommonResponse<db::asset_status::Data>>> {
+    c.check_module_privilige(db::Module::Asset, db::PrivilegeType::Edit)
+        .await?;
+    let client = DB.get().unwrap();
+    CommonResponse::json_data(
+        client
+            .asset_status()
+            .update(db::asset_status::id::equals(id), payload.to_params())
+            .exec()
+            .await?,
+    )
+}
+
+#[debug_handler]
+pub async fn delete_asset_status(
+    Path(id): Path<i32>,
+    c: JwtClaims,
+) -> AppResult<Json<CommonResponse<db::asset_status::Data>>> {
+    c.check_module_privilige(db::Module::Asset, db::PrivilegeType::Edit)
+        .await?;
+    let client = DB.get().unwrap();
+    CommonResponse::json_data(
+        client
+            .asset_status()
+            .delete(db::asset_status::id::equals(id))
+            .exec()
+            .await?,
+    )
 }
