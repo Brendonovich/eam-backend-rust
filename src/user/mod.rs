@@ -1,7 +1,7 @@
 use anyhow::Result;
 use axum::{debug_handler, extract::Path, Json};
 use chrono::{Days, Local, Months};
-use jsonwebtoken::{self};
+use jsonwebtoken;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tracing::{debug, info};
@@ -18,7 +18,7 @@ pub struct UserRegisterInfo {
     pub company_code: String,
     pub username: String,
     pub password: String,
-    pub full_name: String,
+    pub nickname: String,
     pub telephone: String,
     pub address: Option<String>,
     pub email: String,
@@ -62,7 +62,7 @@ pub async fn user_register(Json(ur): Json<UserRegisterInfo>) -> AppResult<()> {
                     crate::db::IsActive::Yes,
                     ur.username,
                     format!("{:X}", Sha256::digest(ur.password)),
-                    ur.full_name,
+                    ur.nickname,
                     ur.telephone,
                     ur.email,
                     db::role::id::equals(role.id),
@@ -203,7 +203,7 @@ pub async fn user_details(
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateUserInfo {
-    pub full_name: Option<String>,
+    pub nickname: Option<String>,
     pub address: Option<String>,
     pub password: Option<String>,
     pub telephone: Option<String>,
@@ -225,9 +225,7 @@ pub async fn update_user(
         CommonResponse::json_data(
             client
                 .user()
-                .update(db::user::id::equals(id), vec![
-                    // db::user::full_name::set(payload.full_name)
-                ])
+                .update(db::user::id::equals(id), update_helper(payload))
                 .select(user_out::select())
                 .exec()
                 .await?,
@@ -243,12 +241,53 @@ pub async fn update_user(
                 for p in rpv {
                     if p.module == db::Module::Admin && p.privilege_type == db::PrivilegeType::Edit
                     {
+                        return CommonResponse::json_data(
+                            client
+                                .user()
+                                .update(db::user::id::equals(id), update_helper(payload))
+                                .select(user_out::select())
+                                .exec()
+                                .await?,
+                        );
                     }
                 }
             }
         }
-        todo!()
+        Err(AppError::Custom {
+            status_code: 400,
+            error: "invalid request".to_string(),
+        })
     }
+}
+
+fn update_helper(payload: UpdateUserInfo) -> Vec<db::user::SetParam> {
+    let mut v: Vec<db::user::SetParam> = vec![];
+    if let Some(x) = payload.nickname {
+        v.push(db::user::nickname::set(x));
+    }
+    v.push(db::user::address::set(payload.address));
+    if let Some(x) = payload.password {
+        v.push(db::user::password::set(x));
+    }
+    if let Some(x) = payload.telephone {
+        v.push(db::user::telephone::set(x));
+    }
+    v.push(db::user::customize_fileds_1::set(
+        payload.customize_fileds_1,
+    ));
+    v.push(db::user::customize_fileds_1::set(
+        payload.customize_fileds_2,
+    ));
+    v.push(db::user::customize_fileds_1::set(
+        payload.customize_fileds_3,
+    ));
+    v.push(db::user::customize_fileds_1::set(
+        payload.customize_fileds_4,
+    ));
+    v.push(db::user::customize_fileds_1::set(
+        payload.customize_fileds_5,
+    ));
+    v
 }
 
 #[derive(Debug, Clone, :: serde :: Serialize, :: serde :: Deserialize)]

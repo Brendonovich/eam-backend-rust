@@ -23,7 +23,7 @@ model User {
     is_active           IsActive
     username            String                @unique @db.VarChar(255)
     password            String                @db.VarChar(255)
-    full_name           String                @db.VarChar(255)
+    nickname           String                @db.VarChar(255)
     telephone           String                @db.VarChar(255)
     address             String?               @db.VarChar(255)
     email               String                @unique @db.VarChar(255)

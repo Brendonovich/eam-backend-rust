@@ -13,7 +13,7 @@ mod utils;
 
 use anyhow::Result;
 use axum::{
-    routing::{get, post},
+    routing::{get, post, put},
     Router,
 };
 use once_cell::sync::OnceCell;
@@ -44,7 +44,8 @@ async fn main() -> Result<()> {
     let user_router = Router::new()
         .route("/register", post(user_register))
         .route("/login", post(user_login))
-        .route("/details/:id", get(user_details));
+        .route("/details/:id", get(user_details))
+        .route("/update/:id", put(update_user));
 
     let company_router = Router::new().route("/register", post(company_register));
 
